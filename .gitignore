@@ -1,6 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Env / secrets
 .env
 .env.local
-__pycache__
-venv
-.next
-node_modules
+
+# Node / Next
+node_modules/
+.next/
+dist/
+build/
+
+# OS / editor
+.DS_Store

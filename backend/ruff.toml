@@ -1,0 +1,9 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+# E/F = pyflakes+pycodestyle, I = import sorting, UP = pyupgrade,
+# B = bug-prone patterns. A sensible, not-too-noisy default set.
+select = ["E", "F", "I", "UP", "B"]
+
+exclude = ["alembic/versions"]
