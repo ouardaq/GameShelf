@@ -12,4 +12,4 @@ class Settings(BaseSettings):
     RAWG_API_KEY: str = ""
 
 
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore
