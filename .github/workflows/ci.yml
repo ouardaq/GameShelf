@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend (lint + test)
@@ -24,7 +27,11 @@ jobs:
         env:
           POSTGRES_DB: gameshelf
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
+          # No password at all. The container is reachable only from this job
+          # and is destroyed with it, so a placeholder credential would add no
+          # security -- it would just be one more committed string that secret
+          # scanners have to be taught to ignore.
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U postgres"
@@ -41,11 +48,13 @@ jobs:
           --health-retries 5
 
     env:
-      # Inside the CI runner the services are reachable on localhost at the
-      # default ports (the 5434/6380 remap is only for your local machine).
-      DATABASE_URL: postgresql://postgres:password@localhost:5432/gameshelf
+      # Inside the runner the services are reachable on localhost at the default
+      # ports; the 5434/6380 remap in docker-compose.yml is only for your machine.
+      DB_USER: postgres
+      DB_HOST: localhost
+      DB_PORT: "5432"
       REDIS_URL: redis://localhost:6379/0
-      SECRET_KEY: ci-test-secret-not-used-in-prod
+      SECRET_KEY: ci-only-secret-never-used-to-sign-anything-real
       RAWG_API_KEY: ""
 
     steps:
@@ -53,25 +62,44 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Compose database URLs
+        # No .env file exists here, which is the point -- settings must come
+        # from the environment.
+        run: |
+          base="postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}"
+          echo "DATABASE_URL=${base}/gameshelf" >> "$GITHUB_ENV"
+          echo "TEST_DATABASE_URL=${base}/gameshelf_test" >> "$GITHUB_ENV"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+        run: pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check .
+        run: ruff check --output-format=github .
 
       - name: Format check (ruff)
         run: ruff format --check .
 
+      - name: Test (pytest)
+        run: pytest --cov --cov-report=term-missing
+
       - name: Run migrations
         run: alembic upgrade head
 
-      - name: Test (pytest)
-        run: pytest -q
+      - name: Check migrations match the models
+        # Catches the common failure of editing a model and forgetting to
+        # generate a migration -- that works locally and breaks on deploy.
+        run: alembic check
+
+      - name: Check migrations are reversible
+        run: |
+          alembic downgrade base
+          alembic upgrade head
 
   frontend:
     name: Frontend (lint + build)
@@ -90,6 +118,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        # ci, not install: fails on a lockfile that disagrees with package.json
+        # instead of quietly resolving something new.
         run: npm ci
 
       - name: Lint
