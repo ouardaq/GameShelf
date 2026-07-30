@@ -6,6 +6,8 @@ venv/
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
+.coverage
+htmlcov/
 
 # Env / secrets
 .env
@@ -19,3 +21,5 @@ build/
 
 # OS / editor
 .DS_Store
+.idea/
+.vscode/

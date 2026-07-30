@@ -1,0 +1,45 @@
+[project]
+name = "gameshelf-backend"
+version = "0.1.0"
+description = "GameShelf API — track, shelve and review video games"
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["venv", "alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade — flag syntax superseded by our target version
+    "B",    # bugbear — likely bugs, e.g. mutable default arguments
+    "C4",   # comprehension simplifications
+    "SIM",  # simplifications
+    "ARG",  # unused arguments
+    "RUF",  # ruff's own rules
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports: these modules exist to gather names, not to use them.
+"app/models/__init__.py" = ["F401"]
+"app/schemas/__init__.py" = ["F401"]
+# Fixtures are passed positionally and legitimately unused in the body.
+"tests/**" = ["ARG001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --strict-config"
+# Make `app` and `tests` importable without installing the project, so plain
+# `pytest` works the same as `python -m pytest`.
+pythonpath = ["."]
+# Warnings are errors: a DeprecationWarning from SQLAlchemy or Pydantic is a
+# migration we want to hear about now, not after it becomes a breaking change.
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/main.py"]

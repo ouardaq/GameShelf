@@ -1,0 +1,16 @@
+# Lives at the repository root because that is where pre-commit looks by
+# default; from backend/ the hooks were configured but never ran.
+# Scoped to backend/ -- ruff is for the Python code, the frontend has eslint.
+#
+# Install once with `make hooks`.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Keep in step with the ruff pin in backend/requirements-dev.txt, or the
+    # hook and CI can disagree about what counts as formatted.
+    rev: v0.16.0
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        files: ^backend/
+      - id: ruff-format
+        files: ^backend/

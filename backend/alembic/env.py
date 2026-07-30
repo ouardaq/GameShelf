@@ -1,8 +1,15 @@
+import sys
 from logging.config import fileConfig
+from pathlib import Path
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+
+# Make the `app` package importable when alembic runs from backend/.
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
+from app import models  # noqa: F401  (registers every model on Base.metadata)
 from app.core.config import settings
 from app.db.database import Base
 
@@ -10,8 +17,7 @@ from app.db.database import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-# Read the database URL from application settings (.env / environment)
-# instead of the placeholder in alembic.ini.
+# The URL lives in the environment, not in alembic.ini, so no credentials are committed.
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
@@ -19,9 +25,7 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Base.metadata drives autogenerate. Import all models here so their
-# tables are registered on Base before Alembic inspects the metadata,
-# e.g. once they exist: from app.models import user, game, shelf, review
+# Model metadata, for 'autogenerate' support.
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -68,7 +72,12 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            compare_type=True,
+            compare_server_default=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

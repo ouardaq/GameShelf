@@ -1,4 +1,11 @@
+# Development and CI dependencies. Includes the runtime set, so one install
+# gives you everything:
+#   pip install -r requirements-dev.txt
 -r requirements.txt
 
-pytest==8.3.4
+pre-commit==4.6.1
+pytest==9.1.1
+pytest-cov==7.1.0
+# Keep in step with the rev pinned in .pre-commit-config.yaml, or the hook and
+# CI can disagree about what counts as formatted.
 ruff==0.16.0
